@@ -54,8 +54,9 @@ def astar(start, is_end, get_nbrs, h=None):
         start    - the node to begin the search from
         is_end   - a function is_end(node) that returns whether 'node' meets the
                    goal criteria of the search
-        get_nbrs - a function get_nbrs(node) that returns all nodes immediately
-                   reachable from 'node'
+        get_nbrs - a function get_nbrs(node) that returns a sequnce of 2-tuples:
+                     - nbr[0] = a neighbor reachable from the current node
+                     - nbr[1] = the cost of moving from node to that neighbor
         h        - a function that estimates the distance from 'node' to a state
                    that meets the goal criteria. h(node) must always be <= the
                    actual distance from 'node' to any goal state.
@@ -67,24 +68,27 @@ def astar(start, is_end, get_nbrs, h=None):
         h = lambda x : 0
     heap_add(f, (h(start),start))
 
-    #minf = -1
+    minf = -1
     openset = set([start])
     closedset = set([])
     parents = {start: None}
     pushloc = None
+    oldtime = 0
 
     starttime = time.time()
     while len(openset) > 0:
 
         cur = heap_pop(f)
-        #if cur[0] > minf:
-            #if cur[0] - minf > 0.02:
-                #print "New lower bound on solution:", minf, "found after",time.time()-starttime,"seconds"
-                #print 'closed:',len(closedset)+1
-                #print 'open:',len(openset)-1
-                #print_board(cur[1])
-            #else:
-            #    minf = cur[0]
+        if cur[0] > minf:
+            minf = cur[0]
+
+        thetime = time.time()
+        if oldtime // 10 != thetime // 10:
+            print "Lower bound on solution:", minf, "found after",time.time()-starttime,"seconds"
+            print 'closed:',len(closedset)+1
+            print 'open:',len(openset)-1
+            oldtime = thetime
+            #print_board(cur[1])
         if is_end(cur[1]):
             #print 'closed:',len(closedset)+1
             #print 'open:',len(openset)-1
@@ -102,10 +106,11 @@ def astar(start, is_end, get_nbrs, h=None):
         for nbr,edge_cost in get_nbrs(cur):
             if nbr not in closedset:
                 if nbr not in openset:
-                    openset.add(nbr)
+
                     g[nbr] = g[cur] + edge_cost
                     parents[nbr] = cur
                     heap_add(f, [h(nbr)+g[nbr],nbr])
+                    openset.add(nbr)
                 else:
                     new_g = g[cur] + edge_cost
                     if new_g < g[nbr]:
